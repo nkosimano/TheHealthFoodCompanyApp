@@ -3,22 +3,23 @@
   "version": "1.0.0",
   "description": "Azure Functions for TheHealthFoodCompanyApp",
   "scripts": {
-    "build": "tsc && npm run copy-function-json",
-    "copy-function-json": "powershell \"Get-ChildItem -Path . -Filter function.json -Recurse | ForEach-Object { Copy-Item $_.FullName -Destination (Join-Path 'dist' $_.Directory.Name) -Force }\"",
+    "build": "tsc && npm run copy-files",
     "watch": "tsc -w",
     "prestart": "npm run build",
     "start": "func start",
-    "test": "echo \"No tests yet\""
+    "test": "echo \"No tests yet\"",
+    "copy-files": "cpx \"./**/function.json\" ./dist"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@azure/data-tables": "^13.2.2",
     "@azure/functions": "^4.5.0",
-    "jsonwebtoken": "^9.0.2",
-    "@azure/data-tables": "^13.2.2"
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
-    "typescript": "^5.5.3",
-    "@types/jsonwebtoken": "^9.0.6"
+    "@types/jsonwebtoken": "^9.0.6",
+    "cpx": "^1.5.0",
+    "typescript": "^5.5.3"
   }
 }

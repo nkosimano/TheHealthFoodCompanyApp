@@ -13,11 +13,15 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:7072',
+        target: 'http://localhost:7071', // Your Azure Functions server
         changeOrigin: true,
-        secure: false
+        rewrite: (path) => path.replace(/^\/api/, '/api/debug')
+      },
+      '/api2': {
+        target: 'http://localhost:7071',
+        changeOrigin: true,
       }
-    }
+    },
   },
   build: {
     sourcemap: true,

@@ -5,8 +5,8 @@
       "type": "httpTrigger",
       "direction": "in",
       "name": "req",
-      "methods": ["get", "post", "options"],
-      "route": "inventory/{operation}"
+      "methods": ["get", "post", "put", "delete", "options", "patch", "head"],
+      "route": "{*path}"
     },
     {
       "type": "http",
