@@ -2,9 +2,9 @@
   "name": "api",
   "version": "1.0.0",
   "description": "Azure Functions for TheHealthFoodCompanyApp",
-  "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run copy-function-json",
+    "copy-function-json": "powershell \"Get-ChildItem -Path . -Filter function.json -Recurse | ForEach-Object { Copy-Item $_.FullName -Destination (Join-Path 'dist' $_.Directory.Name) -Force }\"",
     "watch": "tsc -w",
     "prestart": "npm run build",
     "start": "func start",

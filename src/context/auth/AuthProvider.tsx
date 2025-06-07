@@ -33,7 +33,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // First, try to revoke the token on the server
     if (auth.access_token) {
       try {
-        await fetch('/api/zohoAuth/revoke', {
+        const apiUrl = import.meta.env.DEV
+          ? 'http://localhost:7071/api/zohoAuth/revoke'
+          : '/api/zohoAuth/revoke';
+          
+        await fetch(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: auth.access_token }),
@@ -90,13 +94,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const handleAuthCallback = useCallback(async (code: string): Promise<boolean> => {
     try {
+      // Define the API URL based on the environment
+      const apiUrl = import.meta.env.DEV 
+        ? 'http://localhost:7071/api/zohoAuth' 
+        : '/api/zohoAuth';
+
       // Call our secure backend endpoint to exchange the code for tokens
-      const response = await fetch('/api/zohoAuth', {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           code,
-          // ✅ CORRECTED: This must exactly match the redirect_uri from the login() function
           redirect_uri: `${window.location.origin}/auth/callback` 
         }),
       });
@@ -169,8 +177,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = () => {
     const redirectUri = encodeURIComponent(`${window.location.origin}/auth/callback`);
-    // ✅ CORRECTED: Add the ZohoPeople scope back in
-    const scope = encodeURIComponent('ZohoInventory.FullAccess.all,ZohoPeople.user.READ');
+    // Updated scope to use the correct Zoho People API scope
+    const scope = encodeURIComponent('ZohoInventory.FullAccess.all,ZohoPeople.employee.READ');
     const authUrl = `https://accounts.zoho.com/oauth/v2/auth?response_type=code&client_id=${CLIENT_ID}&scope=${scope}&redirect_uri=${redirectUri}&access_type=offline&prompt=consent`;
     window.location.href = authUrl;
   };

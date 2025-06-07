@@ -9,8 +9,9 @@ import type {
 import { addBreadcrumb, captureError, captureMessage } from './sentryService';
 
 // Base API URLs
-const ZOHO_INVENTORY_API = 'https://inventory.zohoapis.com/api/v1';
-const ZOHO_PEOPLE_API = 'https://people.zoho.com/people/api';
+const API_BASE = import.meta.env.DEV ? 'http://localhost:7071/api' : '/api';
+const ZOHO_INVENTORY_API = `${API_BASE}/zohoInventory`;
+const ZOHO_PEOPLE_API = `${API_BASE}/zohoPeople`;
 
 // Variable to store the current auth token for API calls
 let authToken = '';
