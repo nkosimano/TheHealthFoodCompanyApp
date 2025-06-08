@@ -27,29 +27,32 @@ const httpTrigger: HttpHandler = async function (req: HttpRequest, context: Invo
         }
 
         let targetUrl = '';
-
-        // Intelligent routing based on the request path
+        // Route to Zoho People only for specific known People API paths
         if (requestPath.startsWith('forms/P_EmployeeView/records')) {
             targetUrl = `${ZOHO_PEOPLE_API}/${requestPath}`;
-        } else if (requestPath.startsWith('settings') || requestPath.startsWith('userinfo')) {
-            targetUrl = `${ZOHO_INVENTORY_API}/${requestPath}`;
-            context.log(`Specifically routing ${requestPath} to Zoho Inventory API`);
         } else {
-            // Default to Zoho Inventory for all other requests
+            // Default: route all other requests to Zoho Inventory
             targetUrl = `${ZOHO_INVENTORY_API}/${requestPath}`;
         }
 
-        const fullTargetUrl = `${targetUrl}?${req.query.toString()}`;
+        // Preserve query string only if present
+        const queryString = req.query && Object.keys(req.query).length > 0 ? `?${new URLSearchParams(req.query).toString()}` : '';
+        const fullTargetUrl = `${targetUrl}${queryString}`;
         context.log(`Proxying request for '${requestPath}' to: ${fullTargetUrl}`);
 
-        const response = await fetch(fullTargetUrl, {
+        // Only send a body for methods that support it
+        let fetchOptions: any = {
             method: req.method,
             headers: {
                 'Authorization': authHeader,
                 'Content-Type': 'application/json'
-            },
-            body: req.body ? JSON.stringify(await req.json()) : null
-        });
+            }
+        };
+        if (!["GET", "HEAD"].includes(req.method.toUpperCase()) && req.body) {
+            fetchOptions.body = JSON.stringify(await req.json());
+        }
+
+        const response = await fetch(fullTargetUrl, fetchOptions);
 
         const contentType = response.headers.get("content-type");
         let responseData: any;
