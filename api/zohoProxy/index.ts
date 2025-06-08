@@ -14,64 +14,37 @@ const httpTrigger: HttpHandler = async function (req: HttpRequest, context: Invo
         return { status: 204, headers };
     }
 
-    try {
-        const requestPath = req.params.path;
-        const authHeader = req.headers.get('authorization');
+    const requestPath = req.params.path || '(unknown)';
 
-        context.log(`Received request for path: ${requestPath}`);
-        context.log(`Full request URL: ${req.url}`);
-        context.log(`Query parameters: ${req.query.toString()}`);
+    try {
+        const authHeader = req.headers.get('authorization');
+        context.log(`Proxying request for path: ${requestPath}`);
 
         if (!authHeader) {
             return { status: 401, headers, jsonBody: { error: 'Missing authorization header' }};
         }
 
-        let targetUrl = '';
-        // Route to Zoho People only for specific known People API paths
-        if (requestPath.startsWith('forms/P_EmployeeView/records')) {
-            targetUrl = `${ZOHO_PEOPLE_API}/${requestPath}`;
-        } else {
-            // Default: route all other requests to Zoho Inventory
-            targetUrl = `${ZOHO_INVENTORY_API}/${requestPath}`;
-        }
-
-        // Preserve query string only if present
-        const queryString = req.query && Object.keys(req.query).length > 0 ? `?${new URLSearchParams(req.query).toString()}` : '';
-        const fullTargetUrl = `${targetUrl}${queryString}`;
-        context.log(`Proxying request for '${requestPath}' to: ${fullTargetUrl}`);
-
-        // Only send a body for methods that support it
-        let fetchOptions: any = {
+        const targetUrlBase = requestPath.startsWith('forms/P_EmployeeView/records') 
+            ? ZOHO_PEOPLE_API 
+            : ZOHO_INVENTORY_API;
+        
+        const fullTargetUrl = `${targetUrlBase}/${requestPath}${req.url.search}`;
+        
+        const fetchOptions: RequestInit = {
             method: req.method,
-            headers: {
-                'Authorization': authHeader,
-                'Content-Type': 'application/json'
-            }
+            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+            body: req.body ? JSON.stringify(await req.json()) : undefined
         };
-        if (!["GET", "HEAD"].includes(req.method.toUpperCase()) && req.body) {
-            fetchOptions.body = JSON.stringify(await req.json());
-        }
-
+        
         const response = await fetch(fullTargetUrl, fetchOptions);
+        const responseData = await response.json();
 
-        const contentType = response.headers.get("content-type");
-        let responseData: any;
-        if (contentType?.includes("application/json")) {
-            responseData = await response.json();
-        } else {
-            responseData = await response.text();
-        }
-
-        return {
-            status: response.status,
-            headers: { ...headers, 'Content-Type': 'application/json' },
-            jsonBody: responseData
-        };
+        return { status: response.status, headers, jsonBody: responseData };
 
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-        context.error(`Proxy Error for path ${req.params.path}:`, errorMessage);
-        return { status: 500, headers, jsonBody: { error: 'Internal Server Error', details: errorMessage }};
+        const err = error as Error;
+        context.log(`ERROR in zohoProxy for path ${requestPath}: ${err.message}`);
+        return { status: 500, headers, jsonBody: { error: 'Internal Server Error', details: err.message }};
     }
 };
 

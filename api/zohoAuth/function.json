@@ -17,6 +17,6 @@
       "name": "res"
     }
   ],
-  "scriptFile": "index.js",
+  "scriptFile": "../dist/zohoAuth/index.js",
   "entryPoint": "default"
 } 

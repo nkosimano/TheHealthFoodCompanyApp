@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_AUTH_PROXY_URL?.replace('/api/auth', '/api/zoho') || 'http://localhost:3000/api/zoho';
+// This should be a relative path to match your vite.config.ts proxy
+const API_BASE_URL = '/api';
 
 let authToken: string | null = null;
 
@@ -24,8 +25,7 @@ export const apiCall = async <T>(
 
   const config: RequestInit = {
     method,
-    headers,
-    credentials: 'include'
+    headers
   };
 
   if (body && method !== 'GET') {
@@ -73,4 +73,4 @@ export const fetchLocations = async () => {
 
 export const fetchSettings = async () => {
   return apiCall<any>('settings');
-}; 
+};

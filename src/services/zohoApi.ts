@@ -6,12 +6,11 @@ import type {
   ActionType,
   UserInfo
 } from '../types';
-import { addBreadcrumb, captureError, captureMessage } from './sentryService';
+import { addBreadcrumb, captureError,} from './sentryService';
 
-// Base API URLs
-const API_BASE = import.meta.env.DEV ? 'http://localhost:7071/api' : '/api';
-const ZOHO_INVENTORY_API = `${API_BASE}/zohoInventory`;
-const ZOHO_PEOPLE_API = `${API_BASE}/zohoPeople`;
+// The API_BASE now points to our proxy function's route
+const API_BASE = '/api/zohoProxy';
+
 
 // Variable to store the current auth token for API calls
 let authToken = '';
@@ -172,7 +171,7 @@ const apiCall = async <T>(endpoint: string, options: RequestInit = {}): Promise<
       ...options.headers
     };
 
-    const response = await fetch(`${ZOHO_INVENTORY_API}${endpoint}`, {
+    const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       headers,
       mode: 'cors'
@@ -365,7 +364,7 @@ export const createInventoryAdjustment = async (params: AdjustmentParams): Promi
 // Fetch current user
 export const fetchCurrentUser = async (): Promise<UserInfo> => {
   try {
-    const response = await fetch(`${ZOHO_PEOPLE_API}/forms/P_EmployeeView/records`, {
+    const response = await fetch(`${API_BASE}/users/currentuser`, {
       headers: {
         'Authorization': `Bearer ${authToken}`,
         'Accept': 'application/json'

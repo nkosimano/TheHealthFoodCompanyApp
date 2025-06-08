@@ -33,9 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // First, try to revoke the token on the server
     if (auth.access_token) {
       try {
-        const apiUrl = import.meta.env.DEV
-          ? 'http://localhost:7071/api/zohoAuth/revoke'
-          : '/api/zohoAuth/revoke';
+        const apiUrl = '/api/zohoAuth/revoke';
           
         await fetch(apiUrl, {
           method: 'POST',
@@ -95,9 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleAuthCallback = useCallback(async (code: string): Promise<boolean> => {
     try {
       // Define the API URL based on the environment
-      const apiUrl = import.meta.env.DEV 
-        ? 'http://localhost:7071/api/zohoAuth' 
-        : '/api/zohoAuth';
+      const apiUrl = '/api/zohoAuth';
 
       // Call our secure backend endpoint to exchange the code for tokens
       const response = await fetch(apiUrl, {
