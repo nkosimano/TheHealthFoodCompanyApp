@@ -28,7 +28,7 @@ const httpTrigger: HttpHandler = async function (req: HttpRequest, context: Invo
         const clientSecret = process.env.ZOHO_CLIENT_SECRET;
 
         if (!clientId || !clientSecret) {
-            context.log("ERROR: Missing ZOHO_CLIENT_ID or ZOHO_CLIENT_SECRET in environment variables.");
+            context.error("ERROR: Missing ZOHO_CLIENT_ID or ZOHO_CLIENT_SECRET in environment variables.");
             return { status: 500, headers: corsHeaders, jsonBody: { error: "Server configuration error" } };
         }
 
@@ -48,7 +48,7 @@ const httpTrigger: HttpHandler = async function (req: HttpRequest, context: Invo
         const data = await response.json() as any;
 
         if (!response.ok) {
-            context.log(`ERROR: Zoho token exchange failed: ${JSON.stringify(data)}`);
+            context.error(`ERROR: Zoho token exchange failed: ${JSON.stringify(data)}`);
             return { status: response.status, headers: corsHeaders, jsonBody: { error: data.error || "Token exchange failed" }};
         }
 
@@ -56,7 +56,7 @@ const httpTrigger: HttpHandler = async function (req: HttpRequest, context: Invo
 
     } catch (error) {
         const err = error as Error;
-        context.log(`FATAL ERROR in zohoAuth function: ${err.message}`);
+        context.error(`FATAL ERROR in zohoAuth function: ${err.message}`);
         return { status: 500, headers: corsHeaders, jsonBody: { error: "Internal server error", details: err.message } };
     }
 };

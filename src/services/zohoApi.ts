@@ -6,11 +6,15 @@ import type {
   ActionType,
   UserInfo
 } from '../types';
-import { addBreadcrumb, captureError,} from './sentryService';
+import { addBreadcrumb, captureError } from './sentryService';
 
 // The API_BASE now points to our proxy function's route
 const API_BASE_URL = '/api';
 
+// Rate limiting configuration
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 1000; // 1 second
+const MAX_RETRY_DELAY = 10000; // 10 seconds
 
 // Variable to store the current auth token for API calls
 let authToken = '';
@@ -151,8 +155,21 @@ const mapZohoError = (error: unknown): {
   return baseError;
 };
 
-// Generic API call with error handling and token check
-const apiCall = async <T>(endpoint: string, options: RequestInit = {}): Promise<T> => {
+// Sleep utility for rate limiting
+const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
+
+// Calculate exponential backoff delay
+const calculateBackoff = (retryCount: number): number => {
+  const delay = Math.min(
+    INITIAL_RETRY_DELAY * Math.pow(2, retryCount),
+    MAX_RETRY_DELAY
+  );
+  // Add jitter to prevent thundering herd
+  return delay + (Math.random() * 1000);
+};
+
+// Generic API call with error handling, token check, and rate limiting
+const apiCall = async <T>(endpoint: string, options: RequestInit = {}, retryCount = 0): Promise<T> => {
   try {
     if (!authToken) {
       throw new Error('No authentication token available');
@@ -162,7 +179,7 @@ const apiCall = async <T>(endpoint: string, options: RequestInit = {}): Promise<
       throw new Error('Invalid token format');
     }
 
-    addBreadcrumb('api', `Attempting Zoho API call: ${options.method || 'GET'} ${endpoint}`);
+    addBreadcrumb('api', `Attempting Zoho API call: ${options.method || 'GET'} ${endpoint} (retry ${retryCount})`);
 
     const headers = {
       'Authorization': `Bearer ${authToken}`,
@@ -176,6 +193,23 @@ const apiCall = async <T>(endpoint: string, options: RequestInit = {}): Promise<
       headers,
       mode: 'cors'
     });
+
+    // Handle rate limiting
+    if (response.status === 429) {
+      if (retryCount < MAX_RETRIES) {
+        const retryAfter = response.headers.get('Retry-After');
+        const delayMs = retryAfter 
+          ? parseInt(retryAfter, 10) * 1000 
+          : calculateBackoff(retryCount);
+
+        console.log(`Rate limited. Retrying in ${delayMs}ms (retry ${retryCount + 1}/${MAX_RETRIES})`);
+        await sleep(delayMs);
+        
+        return apiCall(endpoint, options, retryCount + 1);
+      } else {
+        throw new Error('Rate limit exceeded after maximum retries');
+      }
+    }
 
     if (response.status === 401) {
       authToken = '';

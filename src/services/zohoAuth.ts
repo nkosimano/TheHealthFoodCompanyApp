@@ -3,12 +3,16 @@ const ZOHO_ACCOUNTS_URL = 'https://accounts.zoho.com';
 const ZOHO_TOKEN_ENDPOINT = `${ZOHO_ACCOUNTS_URL}/oauth/v2/token`;
 const ZOHO_AUTH_ENDPOINT = `${ZOHO_ACCOUNTS_URL}/oauth/v2/auth`;
 
+// Token should be refreshed 5 minutes before expiration
+const TOKEN_REFRESH_BUFFER = 5 * 60 * 1000; // 5 minutes in milliseconds
+
 class ZohoAuthService {
   private static instance: ZohoAuthService;
   private clientId: string;
   private clientSecret: string;
   private redirectUri: string;
   private organizationId: string;
+  private tokenRefreshTimeout: NodeJS.Timeout | null = null;
 
   private constructor() {
     this.clientId = import.meta.env.VITE_ZOHO_CLIENT_ID;
@@ -26,6 +30,35 @@ class ZohoAuthService {
       redirectUri: this.redirectUri,
       organizationId: this.organizationId.substring(0, 8) + '...'
     });
+
+    // Check for existing token and set up refresh if needed
+    this.setupTokenRefresh();
+  }
+
+  private setupTokenRefresh(): void {
+    const expiresAt = localStorage.getItem('zoho_token_expires_at');
+    if (expiresAt) {
+      const expirationTime = parseInt(expiresAt, 10);
+      const now = Date.now();
+      const timeUntilRefresh = expirationTime - now - TOKEN_REFRESH_BUFFER;
+
+      if (timeUntilRefresh > 0) {
+        // Clear any existing timeout
+        if (this.tokenRefreshTimeout) {
+          clearTimeout(this.tokenRefreshTimeout);
+        }
+
+        // Set up new timeout for refresh
+        this.tokenRefreshTimeout = setTimeout(() => {
+          this.refreshToken().catch(console.error);
+        }, timeUntilRefresh);
+
+        console.log(`Token refresh scheduled in ${Math.round(timeUntilRefresh / 1000)} seconds`);
+      } else {
+        // Token is expired or about to expire, refresh now
+        this.refreshToken().catch(console.error);
+      }
+    }
   }
 
   public static getInstance(): ZohoAuthService {
@@ -148,7 +181,17 @@ class ZohoAuthService {
       if (responseData.refresh_token) {
         localStorage.setItem('zoho_refresh_token', responseData.refresh_token);
       }
+      
+      // Store token expiration time
+      const expiresIn = responseData.expires_in || 3600; // Default to 1 hour if not provided
+      const expiresAt = Date.now() + (expiresIn * 1000);
+      localStorage.setItem('zoho_token_expires_at', expiresAt.toString());
+      
       localStorage.setItem('zoho_organization_id', this.organizationId);
+      
+      // Set up refresh timer
+      this.setupTokenRefresh();
+      
       return responseData;
     } catch (error) {
       console.error('Error handling Zoho callback:', error);
@@ -204,6 +247,20 @@ class ZohoAuthService {
       }
 
       localStorage.setItem('zoho_access_token', responseData.access_token);
+      
+      // Handle refresh token rotation if provided
+      if (responseData.refresh_token) {
+        localStorage.setItem('zoho_refresh_token', responseData.refresh_token);
+      }
+
+      // Update token expiration time
+      const expiresIn = responseData.expires_in || 3600;
+      const expiresAt = Date.now() + (expiresIn * 1000);
+      localStorage.setItem('zoho_token_expires_at', expiresAt.toString());
+
+      // Set up next refresh
+      this.setupTokenRefresh();
+
       return responseData;
     } catch (error) {
       console.error('Error refreshing token:', error);
@@ -212,8 +269,14 @@ class ZohoAuthService {
   }
 
   public logout(): void {
+    if (this.tokenRefreshTimeout) {
+      clearTimeout(this.tokenRefreshTimeout);
+      this.tokenRefreshTimeout = null;
+    }
+    
     localStorage.removeItem('zoho_access_token');
     localStorage.removeItem('zoho_refresh_token');
+    localStorage.removeItem('zoho_token_expires_at');
     localStorage.removeItem('zoho_organization_id');
     localStorage.removeItem('oauth_state');
     localStorage.removeItem('code_verifier');

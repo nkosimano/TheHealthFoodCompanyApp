@@ -9,7 +9,7 @@
         "post",
         "options"
       ],
-      "route": "zohoAuth"
+      "route": "zohoAuth/{*path}"
     },
     {
       "type": "http",
@@ -17,6 +17,5 @@
       "name": "res"
     }
   ],
-  "scriptFile": "../dist/zohoAuth/index.js",
-  "entryPoint": "default"
-} 
+  "scriptFile": "./index.js"
+}
