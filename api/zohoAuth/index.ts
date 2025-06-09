@@ -17,7 +17,7 @@ const httpTrigger: HttpHandler = async function (req: HttpRequest, context: Invo
 
     try {
         const body = await req.json() as any;
-        const { code, refresh_token, redirect_uri } = body;
+        const { code, code_verifier, redirect_uri, refresh_token } = body;
         const grant_type = refresh_token ? 'refresh_token' : 'authorization_code';
 
         if (!code && !refresh_token) {
@@ -36,16 +36,39 @@ const httpTrigger: HttpHandler = async function (req: HttpRequest, context: Invo
             client_id: clientId,
             client_secret: clientSecret,
             grant_type,
-            ...(code ? { code, redirect_uri } : { refresh_token })
+            ...(code ? { 
+                code, 
+                redirect_uri,
+                code_verifier 
+            } : { 
+                refresh_token 
+            })
+        });
+
+        context.log('Making request to Zoho with params:', {
+            grant_type,
+            has_code: !!code,
+            has_code_verifier: !!code_verifier,
+            redirect_uri,
+            has_refresh_token: !!refresh_token
         });
 
         const response = await fetch(ZOHO_TOKEN_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: params
+            body: params.toString()
         });
 
-        const data = await response.json() as any;
+        const responseText = await response.text();
+        context.log('Raw Zoho response:', responseText);
+
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch (e) {
+            context.error('Failed to parse Zoho response:', e);
+            return { status: 500, headers: corsHeaders, jsonBody: { error: "Invalid response from Zoho" } };
+        }
 
         if (!response.ok) {
             context.error(`ERROR: Zoho token exchange failed: ${JSON.stringify(data)}`);

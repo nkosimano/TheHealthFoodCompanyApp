@@ -125,31 +125,17 @@ class ZohoAuthService {
         throw new Error('No code verifier found');
       }
 
-      const params = new URLSearchParams({
-        code,
-        client_id: this.clientId,
-        client_secret: this.clientSecret,
-        redirect_uri: this.redirectUri,
-        grant_type: 'authorization_code',
-        code_verifier: codeVerifier
-      });
-
-      console.log('Token request parameters:', {
-        code: code.substring(0, 8) + '...',
-        clientId: this.clientId.substring(0, 8) + '...',
-        hasClientSecret: !!this.clientSecret,
-        redirectUri: this.redirectUri,
-        grantType: 'authorization_code',
-        hasCodeVerifier: !!codeVerifier
-      });
-
-      const response = await fetch(ZOHO_TOKEN_ENDPOINT, {
+      const response = await fetch('/api/zohoAuth', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: params.toString()
+        body: JSON.stringify({
+          code,
+          redirect_uri: this.redirectUri,
+          code_verifier: codeVerifier
+        })
       });
 
       console.log('Token response status:', response.status);
@@ -161,16 +147,8 @@ class ZohoAuthService {
         responseData = JSON.parse(responseText);
       } catch (e) {
         console.error('Failed to parse response as JSON:', e);
-        throw new Error('Invalid response format from Zoho');
+        throw new Error('Invalid response format from server');
       }
-
-      console.log('Token response:', {
-        hasAccessToken: !!responseData.access_token,
-        hasRefreshToken: !!responseData.refresh_token,
-        expiresIn: responseData.expires_in,
-        error: responseData.error,
-        errorDescription: responseData.error_description
-      });
 
       if (!response.ok || responseData.error) {
         throw new Error(responseData.error_description || responseData.error || 'Failed to authenticate');
