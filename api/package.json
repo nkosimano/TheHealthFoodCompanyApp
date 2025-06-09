@@ -8,7 +8,7 @@
     "prestart": "npm run build",
     "start": "func start",
     "test": "echo \"No tests yet\"",
-    "copy-files": "cpx \"./**/function.json\" ./dist"
+    "copy-files": "copyfiles \"./**/function.json\" dist"
   },
   "author": "",
   "license": "ISC",
@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.9",
-    "cpx": "^1.2.1",
+    "copyfiles": "^2.4.1",
     "typescript": "^5.5.3"
   }
 }

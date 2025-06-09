@@ -9,7 +9,7 @@ import type {
 import { addBreadcrumb, captureError,} from './sentryService';
 
 // The API_BASE now points to our proxy function's route
-const API_BASE = '/api/zohoProxy';
+const API_BASE_URL = '/api';
 
 
 // Variable to store the current auth token for API calls
@@ -171,7 +171,7 @@ const apiCall = async <T>(endpoint: string, options: RequestInit = {}): Promise<
       ...options.headers
     };
 
-    const response = await fetch(`${API_BASE}${endpoint}`, {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers,
       mode: 'cors'
@@ -364,7 +364,7 @@ export const createInventoryAdjustment = async (params: AdjustmentParams): Promi
 // Fetch current user
 export const fetchCurrentUser = async (): Promise<UserInfo> => {
   try {
-    const response = await fetch(`${API_BASE}/users/currentuser`, {
+    const response = await fetch(`${API_BASE_URL}/users/currentuser`, {
       headers: {
         'Authorization': `Bearer ${authToken}`,
         'Accept': 'application/json'
