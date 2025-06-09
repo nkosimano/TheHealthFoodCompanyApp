@@ -28,7 +28,11 @@ jobs:
           action: "upload"
           app_location: "/" 
           api_location: "/api" 
-          output_location: "dist" 
+          output_location: "dist"
+        env: # <-- CORRECT LOCATION
+          VITE_ZOHO_CLIENT_ID: ${{ secrets.ZOHO_CLIENT_ID }}
+          VITE_ZOHO_ORGANIZATION_ID: ${{ secrets.ZOHO_ORGANIZATION_ID }}
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
@@ -41,6 +45,4 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_KIND_WATER_07F3DD003 }}
           action: "close"
-          # app_location is required by the action, even for 'close'. 
-          # Point it to a valid path, typically the root.
-          app_location: "/" 
+          app_location: "/"
